@@ -1,7 +1,7 @@
 import '../config/database_config.dart';
 import '../model/paying_source.dart';
 
-class PayingSourceService {
+class PaymentSourceService {
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
   Future<int> createPayingSource(PayingSource source) async {

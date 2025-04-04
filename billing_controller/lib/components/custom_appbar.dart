@@ -1,5 +1,9 @@
+import 'package:billing_controller/pages/payment_source_form.dart';
+import 'package:billing_controller/pages/payment_source_page.dart';
 import 'package:billing_controller/util/date_time_util.dart';
 import 'package:flutter/material.dart';
+
+import '../services/paying_source_service.dart';
 
 class CustomAppbar {
   static AppBar buildAppBar(BuildContext context, function(DateTime date)) {
@@ -21,8 +25,99 @@ class CustomAppbar {
         ),
         IconButton(
           icon: Icon(Icons.monetization_on),
-          onPressed: () {
-            print('Mostrar saldo de todas a fontes pgagadoras');
+          onPressed: () async {
+            try {
+              var listPayingSource =
+                  await PaymentSourceService().getAllPayingSources();
+
+              if (listPayingSource.isEmpty) {
+                showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: Text('Nenhuma fonte pagadora cadastrada'),
+                      content: Text('Cadastre uma fonte pagadora primeiro.'),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => PaymentSourceForm(
+                                      onSave: () => Navigator.pop(context),
+                                    ),
+                              ),
+                            );
+                          },
+                          child: Text('Cadastrar'),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              } else {
+                // Cálculo correto do saldo total
+                double totalValue = listPayingSource.fold(
+                  0.0,
+                  (sum, element) => sum + (element.balance ?? 0.0),
+                );
+
+                showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: Text(
+                        'Saldo Total R\$${totalValue.toStringAsFixed(2)}',
+                      ),
+                      content: SizedBox(
+                        width: double.maxFinite,
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: listPayingSource.length,
+                          itemBuilder:
+                              (context, index) => Card(
+                                color: Theme.of(context).colorScheme.primary,
+                                child: ListTile(
+                                  title: Text(
+                                    listPayingSource[index].name,
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                  subtitle: Text(
+                                    'R\$${listPayingSource[index].balance?.toStringAsFixed(2) ?? '0.00'}',
+                                    style: TextStyle(color: Colors.white70),
+                                  ),
+                                ),
+                              ),
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text('Fechar'),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              }
+            } catch (e) {
+              showDialog(
+                context: context,
+                builder:
+                    (context) => AlertDialog(
+                      title: Text('Erro'),
+                      content: Text('Falha ao carregar fontes pagadoras: $e'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text('OK'),
+                        ),
+                      ],
+                    ),
+              );
+            }
           },
         ),
       ],

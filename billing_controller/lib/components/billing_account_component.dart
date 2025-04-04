@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../config/routes_config.dart';
 import '../model/billing_account.dart' show BillingAccount;
 import '../model/paying_source.dart';
+import '../pages/account_form.dart';
 import '../services/billing_accout_service.dart' show BillingAccountService;
 import '../services/paying_source_service.dart';
 import '../util/date_time_converter.dart' show DateTimeConverter;
@@ -31,21 +33,21 @@ class _AccountComponentState extends State<AccountComponent> {
     super.initState();
     _paymentValueController = TextEditingController(
       text:
-          widget.account.paymentValue?.toString() ??
+          widget.account.paymentValue?.toStringAsFixed(2) ??
           widget.account.value.toStringAsFixed(2),
     );
     _loadPayingSources();
   }
 
   Future<void> _loadPayingSources() async {
-    _payingSources = await PayingSourceService().getAllPayingSources();
+    _payingSources = await PaymentSourceService().getAllPayingSources();
     if (widget.account.payingSource != null) {
       _selectedPayingSource = _payingSources.firstWhere(
         (source) => source.id == widget.account.payingSource?.id,
         orElse: () => _payingSources.first,
       );
     }
-    setState(() {});
+    // setState(() {});
   }
 
   @override
@@ -61,10 +63,10 @@ class _AccountComponentState extends State<AccountComponent> {
         bool _payed = widget.account.paymentDate != null;
         _paymentValueController.text =
             _payed
-                ? widget.account.paymentValue!.toString()
-                : widget.account.value.toString();
+                ? widget.account.paymentValue!.toStringAsFixed(2)
+                : widget.account.value.toStringAsFixed(2);
         return AlertDialog(
-          title: Text(_payed ? 'Registrar Pagamento' : 'Editar Pagamento'),
+          title: Text(_payed ? 'Editar Pagamento' : 'Registrar Pagamento'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -98,26 +100,37 @@ class _AccountComponentState extends State<AccountComponent> {
                   return null;
                 },
               ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                width: double.infinity,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => _clone(),
+                      child: const Text('Clonar'),
+                    ),
+                    TextButton(
+                      onPressed: () => _deletePayment(),
+                      child: const Text('Deletar'),
+                    ),
+                    if (widget.account.paymentDate != null) ...[
+                      TextButton(
+                        onPressed: () => _markAsUnpaid(),
+                        child: const Text('Não Pago'),
+                      ),
+                    ],
+                    if (widget.account.paymentDate == null)
+                      ElevatedButton(
+                        onPressed: () => _savePayment(),
+                        child: const Text('Pagar'),
+                      ),
+                  ],
+                ),
+              ),
             ],
           ),
-          actions: [
-            if (widget.account.paymentDate != null) ...[
-              TextButton(
-                onPressed: () => _markAsUnpaid(),
-                child: const Text('Não Pago'),
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete),
-                onPressed: () => _deletePayment(),
-                tooltip: 'Excluir Conta',
-              ),
-            ],
-            if (widget.account.paymentDate == null)
-              ElevatedButton(
-                onPressed: () => _savePayment(),
-                child: const Text('Pagar'),
-              ),
-          ],
         );
       },
     );
@@ -132,6 +145,10 @@ class _AccountComponentState extends State<AccountComponent> {
       widget.account.paymentValue = double.parse(_paymentValueController.text);
       widget.account.payingSource = _selectedPayingSource;
 
+      _selectedPayingSource!.balance =
+          _selectedPayingSource!.balance - widget.account.paymentValue!;
+
+      await PaymentSourceService().updatePayingSource(_selectedPayingSource!);
       await BillingAccountService().updateBillingAccount(widget.account);
       widget.onUpdate();
       Navigator.pop(context);
@@ -142,8 +159,26 @@ class _AccountComponentState extends State<AccountComponent> {
     }
   }
 
+  Future<void> _clone() async {
+    Navigator.of(context).pop(); // Fecha o diálogo
+
+    Navigator.pushNamed(
+      context,
+      RoutesConfig.accountForm,
+      arguments: {'account': widget.account, 'onSaveSuccess': widget.onUpdate},
+    );
+  }
+
   Future<void> _markAsUnpaid() async {
     try {
+      widget.account.payingSource!.balance =
+          widget.account.payingSource!.balance +
+          (widget.account.paymentValue ?? 0);
+
+      await PaymentSourceService().updatePayingSource(
+        widget.account.payingSource!,
+      );
+
       widget.account.paymentDate = null;
       widget.account.paymentValue = null;
       widget.account.payingSource = null;
@@ -180,6 +215,15 @@ class _AccountComponentState extends State<AccountComponent> {
 
     if (confirmed == true) {
       try {
+        if (widget.account.payingSource != null) {
+          widget.account.payingSource!.balance =
+              widget.account.payingSource!.balance +
+              (widget.account.paymentValue ?? 0);
+          await PaymentSourceService().updatePayingSource(
+            widget.account.payingSource!,
+          );
+        }
+
         await BillingAccountService().deleteBillingAccount(widget.account.id!);
         widget.onUpdate();
         Navigator.pop(context);

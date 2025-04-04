@@ -2,9 +2,15 @@ import 'package:flutter/material.dart';
 
 import '../config/routes_config.dart';
 
-class AppDrawer extends StatelessWidget {
-  const AppDrawer({super.key});
+class AppDrawer extends StatefulWidget {
+  final Function? onSaveSuccess;
+  const AppDrawer({super.key, required this.onSaveSuccess});
 
+  @override
+  State<AppDrawer> createState() => _AppDrawerState();
+}
+
+class _AppDrawerState extends State<AppDrawer> {
   @override
   Widget build(BuildContext context) {
     return Drawer(
@@ -30,7 +36,11 @@ class AppDrawer extends StatelessWidget {
             title: const Text('Conta'),
             onTap: () {
               Navigator.of(context).pop();
-              Navigator.pushNamed(context, RoutesConfig.accountForm);
+              Navigator.pushNamed(
+                context,
+                RoutesConfig.accountForm,
+                arguments: {'onSaveSuccess': widget.onSaveSuccess},
+              );
             },
           ),
         ],

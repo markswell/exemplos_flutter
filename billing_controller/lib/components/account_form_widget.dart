@@ -1,7 +1,7 @@
+import 'package:billing_controller/pages/accouts_page.dart';
 import 'package:billing_controller/services/billing_accout_service.dart';
 import 'package:flutter/material.dart';
 
-import '../config/routes_config.dart';
 import '../model/billing_account.dart';
 import '../util/date_time_converter.dart';
 import 'date_text_field.dart';
@@ -14,8 +14,13 @@ class AccountFormWidget extends StatelessWidget {
 
   final BillingAccount? account;
   final BuildContext context;
+  final Function() onSaveSuccess;
 
-  AccountFormWidget({this.account, required this.context});
+  AccountFormWidget({
+    this.account,
+    required this.context,
+    required this.onSaveSuccess,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +51,7 @@ class AccountFormWidget extends StatelessWidget {
           ),
           DateTextField(controller: _dateController),
           TextFormField(
-            decoration: InputDecoration(labelText: 'Valor'),
+            decoration: InputDecoration(labelText: 'Valor', prefixText: 'R\$ '),
             keyboardType: TextInputType.numberWithOptions(decimal: true),
             controller: _valueController,
             validator: (value) {
@@ -78,8 +83,9 @@ class AccountFormWidget extends StatelessWidget {
 
                   await BillingAccountService().createBillingAccount(account);
 
-                  Navigator.of(context).pop();
-                  Navigator.pushReplacementNamed(context, RoutesConfig.home);
+                  // Navigator.of(context).pop(); // Fecha o loading
+                  Navigator.of(context).pop(); // Fecha o formulário
+                  onSaveSuccess(); // Notifica o sucesso
                 } catch (e) {
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -87,14 +93,10 @@ class AccountFormWidget extends StatelessWidget {
                       content: Text('Erro ao criar conta: ${e.toString()}'),
                     ),
                   );
-                  print('Erro detalhado: $e');
                 }
               }
             },
-            child: Text(
-              'Salvar',
-              style: TextStyle(color: Theme.of(context).colorScheme.primary),
-            ),
+            child: Text('Salvar'),
           ),
         ],
       ),

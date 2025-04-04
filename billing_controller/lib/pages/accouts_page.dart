@@ -18,10 +18,33 @@ class _AccountsPageState extends State<AccountsPage> {
   List<BillingAccount> accounts = [];
   DateTime selectedDate = DateTime.now();
 
-  updateMonthList(DateTime date) async {
-    setState(() {
-      selectedDate = date;
-    });
+  @override
+  void initState() {
+    super.initState();
+    _loadAccounts();
+  }
+
+  Future<void> _loadAccounts() async {
+    try {
+      Map monthBoundaryDates = DateTimeUtil.getMonthBoundaryDates(selectedDate);
+      final selectedAccounts = await BillingAccountService()
+          .getAccountsByDateRange(
+            monthBoundaryDates['firstDay']!,
+            monthBoundaryDates['lastDay']!,
+          );
+      setState(() {
+        accounts = selectedAccounts;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao carregar contas: ${e.toString()}')),
+      );
+    }
+  }
+
+  void updateMonthList(DateTime date) {
+    setState(() => selectedDate = date);
+    _loadAccounts();
   }
 
   @override
@@ -49,7 +72,7 @@ class _AccountsPageState extends State<AccountsPage> {
         } else if (accounts.isEmpty) {
           return Scaffold(
             appBar: CustomAppbar.buildAppBar(context, updateMonthList),
-            drawer: AppDrawer(),
+            drawer: AppDrawer(onSaveSuccess: () => setState(() {})),
             body: Column(
               children: [
                 _period,
@@ -62,7 +85,7 @@ class _AccountsPageState extends State<AccountsPage> {
         } else {
           return Scaffold(
             appBar: CustomAppbar.buildAppBar(context, this.updateMonthList),
-            drawer: AppDrawer(),
+            drawer: AppDrawer(onSaveSuccess: () => setState(() {})),
             body: Column(
               children: [
                 _period,

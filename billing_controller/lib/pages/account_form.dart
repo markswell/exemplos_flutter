@@ -6,16 +6,23 @@ import '../components/account_form_widget.dart' show AccountFormWidget;
 
 class AccountForm extends StatelessWidget {
   final BillingAccount? account;
-  const AccountForm({super.key, this.account});
+  final Function() onSaveSuccess;
+
+  const AccountForm({super.key, this.account, required this.onSaveSuccess});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: CustomAppbar.buildAppBarWithoutActions(context),
-      body: Container(
-        padding: const EdgeInsets.all(10),
-        child: Center(
-          child: AccountFormWidget(account: account, context: context),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: AccountFormWidget(
+          account: account,
+          onSaveSuccess: () {
+            onSaveSuccess();
+            Navigator.pop(context);
+          },
+          context: context,
         ),
       ),
     );

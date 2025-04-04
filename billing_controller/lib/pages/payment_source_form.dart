@@ -4,9 +4,13 @@ import 'package:flutter/material.dart';
 
 class PaymentSourceForm extends StatelessWidget {
   final PayingSource? paymentSource;
-  Function() onSave;
+  final Function() onSave;
 
-  PaymentSourceForm({super.key, this.paymentSource, required this.onSave});
+  const PaymentSourceForm({
+    super.key,
+    this.paymentSource,
+    required this.onSave,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +38,10 @@ class PaymentSourceForm extends StatelessWidget {
             },
           ),
           TextFormField(
-            decoration: InputDecoration(labelText: 'Saldo da fonte pagadora'),
+            decoration: InputDecoration(
+              labelText: 'Saldo da fonte pagadora',
+              prefixText: 'R\$ ',
+            ),
             controller: balanceController,
             keyboardType: TextInputType.numberWithOptions(decimal: true),
             validator: (value) {
@@ -62,14 +69,14 @@ class PaymentSourceForm extends StatelessWidget {
                     balance: double.parse(balanceController.text),
                   );
 
-                  await PayingSourceService().updatePayingSource(toSave);
+                  await PaymentSourceService().updatePayingSource(toSave);
                 } else {
                   final toSave = PayingSource(
                     name: nameController.text,
                     balance: double.parse(balanceController.text),
                   );
 
-                  await PayingSourceService().createPayingSource(toSave);
+                  await PaymentSourceService().createPayingSource(toSave);
                 }
 
                 this.onSave();

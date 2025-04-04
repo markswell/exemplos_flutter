@@ -23,7 +23,15 @@ class MyApp extends StatelessWidget {
       ),
       routes: {
         RoutesConfig.home: (context) => AccountsPage(),
-        RoutesConfig.accountForm: (context) => AccountForm(),
+        RoutesConfig.accountForm: (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>?;
+          return AccountForm(
+            account: args?['account'],
+            onSaveSuccess: args?['onSaveSuccess'] ?? () {},
+          );
+        },
         RoutesConfig.paymentSourceForm: (context) => PaymentSourcePage(),
       },
     );

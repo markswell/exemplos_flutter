@@ -81,7 +81,7 @@ class _PaymentSourcePageState extends State<PaymentSourcePage> {
 }
 
 getData(List<PayingSource> paymentSources) async {
-  var list = await PayingSourceService().getAllPayingSources();
+  var list = await PaymentSourceService().getAllPayingSources();
   paymentSources.clear();
   paymentSources.addAll(list);
 }

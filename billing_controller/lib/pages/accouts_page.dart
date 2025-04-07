@@ -1,3 +1,4 @@
+import 'package:billing_controller/services/ordem_servie.dart';
 import 'package:flutter/material.dart';
 import 'package:billing_controller/util/date_time_util.dart';
 import 'package:billing_controller/model/billing_account.dart';
@@ -15,8 +16,9 @@ class AccountsPage extends StatefulWidget {
 }
 
 class _AccountsPageState extends State<AccountsPage> {
-  List<BillingAccount> accounts = [];
+  List<BillingAccount> _accounts = [];
   DateTime selectedDate = DateTime.now();
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -25,20 +27,23 @@ class _AccountsPageState extends State<AccountsPage> {
   }
 
   Future<void> _loadAccounts() async {
+    setState(() => _isLoading = true);
     try {
-      Map monthBoundaryDates = DateTimeUtil.getMonthBoundaryDates(selectedDate);
+      final monthBoundaryDates = DateTimeUtil.getMonthBoundaryDates(
+        selectedDate,
+      );
       final selectedAccounts = await BillingAccountService()
           .getAccountsByDateRange(
             monthBoundaryDates['firstDay']!,
             monthBoundaryDates['lastDay']!,
           );
-      setState(() {
-        accounts = selectedAccounts;
-      });
+      setState(() => _accounts = selectedAccounts);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao carregar contas: ${e.toString()}')),
       );
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -47,11 +52,30 @@ class _AccountsPageState extends State<AccountsPage> {
     _loadAccounts();
   }
 
+  Future<void> _updateOrderInDatabase() async {
+    for (int i = 0; i < _accounts.length; i++) {
+      _accounts[i].order = await OrdemService().getNewOrdem();
+      await BillingAccountService().updateBillingAccount(_accounts[i]);
+    }
+  }
+
+  Future<void> _handleReorder(int oldIndex, int newIndex) async {
+    if (oldIndex < newIndex) {
+      newIndex -= 1;
+    }
+    final BillingAccount item = _accounts.removeAt(oldIndex);
+    setState(() {
+      _accounts.insert(newIndex, item);
+    });
+
+    await _updateOrderInDatabase();
+  }
+
   @override
   Widget build(BuildContext context) {
-    var _month = DateTimeUtil.getMonths()[selectedDate.month - 1];
-    var _year = selectedDate.year;
-    var _period = Container(
+    final _month = DateTimeUtil.getMonths()[selectedDate.month - 1];
+    final _year = selectedDate.year;
+    final _period = Container(
       color: Theme.of(context).colorScheme.primary,
       padding: const EdgeInsets.all(8.0),
       width: double.infinity,
@@ -62,59 +86,45 @@ class _AccountsPageState extends State<AccountsPage> {
       ),
     );
 
-    return FutureBuilder(
-      future: getData(this.accounts, selectedDate),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        } else if (accounts.isEmpty) {
-          return Scaffold(
-            appBar: CustomAppbar.buildAppBar(context, updateMonthList),
-            drawer: AppDrawer(onSaveSuccess: () => setState(() {})),
-            body: Column(
-              children: [
-                _period,
-                Expanded(
-                  child: Center(child: Text('Não há contas a serem exibidas')),
-                ),
-              ],
+    if (_isLoading) {
+      return Center(child: CircularProgressIndicator());
+    }
+
+    if (_accounts.isEmpty) {
+      return Scaffold(
+        appBar: CustomAppbar.buildAppBar(context, updateMonthList),
+        drawer: AppDrawer(onSaveSuccess: _loadAccounts),
+        body: Column(
+          children: [
+            _period,
+            Expanded(
+              child: Center(child: Text('Não há contas a serem exibidas')),
             ),
-          );
-        } else {
-          return Scaffold(
-            appBar: CustomAppbar.buildAppBar(context, this.updateMonthList),
-            drawer: AppDrawer(onSaveSuccess: () => setState(() {})),
-            body: Column(
-              children: [
-                _period,
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: accounts.length,
-                    itemBuilder:
-                        (context, index) => AccountComponent(
-                          account: accounts[index],
-                          onUpdate: () => setState(() {}),
-                        ),
+          ],
+        ),
+      );
+    }
+
+    return Scaffold(
+      appBar: CustomAppbar.buildAppBar(context, updateMonthList),
+      drawer: AppDrawer(onSaveSuccess: _loadAccounts),
+      body: Column(
+        children: [
+          _period,
+          Expanded(
+            child: ReorderableListView.builder(
+              itemCount: _accounts.length,
+              itemBuilder:
+                  (context, index) => AccountComponent(
+                    key: ValueKey(_accounts[index].id),
+                    account: _accounts[index],
+                    onUpdate: _loadAccounts,
                   ),
-                ),
-              ],
+              onReorder: _handleReorder,
             ),
-          );
-        }
-      },
+          ),
+        ],
+      ),
     );
   }
-}
-
-getData(List<BillingAccount> accounts, DateTime date) async {
-  Map monthBoundaryDates = DateTimeUtil.getMonthBoundaryDates(date);
-  BillingAccountService billingAccountService = BillingAccountService();
-  var selecttedAccounts = await billingAccountService.getAccountsByDateRange(
-    monthBoundaryDates['firstDay']!,
-    monthBoundaryDates['lastDay']!,
-  );
-  accounts.clear();
-  accounts.addAll(selecttedAccounts);
 }

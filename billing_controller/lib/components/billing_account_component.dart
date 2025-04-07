@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import '../config/routes_config.dart';
 import '../model/billing_account.dart' show BillingAccount;
 import '../model/paying_source.dart';
-import '../pages/account_form.dart';
 import '../services/billing_accout_service.dart' show BillingAccountService;
 import '../services/paying_source_service.dart';
 import '../util/date_time_converter.dart' show DateTimeConverter;
@@ -47,7 +46,6 @@ class _AccountComponentState extends State<AccountComponent> {
         orElse: () => _payingSources.first,
       );
     }
-    // setState(() {});
   }
 
   @override
@@ -108,6 +106,10 @@ class _AccountComponentState extends State<AccountComponent> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
+                      onPressed: () => _edit(),
+                      child: const Text('Editar'),
+                    ),
+                    TextButton(
                       onPressed: () => _clone(),
                       child: const Text('Clonar'),
                     ),
@@ -160,7 +162,19 @@ class _AccountComponentState extends State<AccountComponent> {
   }
 
   Future<void> _clone() async {
-    Navigator.of(context).pop(); // Fecha o diálogo
+    var billingAccount = widget.account;
+    billingAccount.id = null;
+    Navigator.of(context).pop();
+
+    Navigator.pushNamed(
+      context,
+      RoutesConfig.accountForm,
+      arguments: {'account': billingAccount, 'onSaveSuccess': widget.onUpdate},
+    );
+  }
+
+  Future<void> _edit() async {
+    Navigator.of(context).pop();
 
     Navigator.pushNamed(
       context,

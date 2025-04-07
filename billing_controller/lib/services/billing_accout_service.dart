@@ -1,20 +1,24 @@
 import '../config/database_config.dart';
 import '../model/billing_account.dart';
 import '../model/paying_source.dart';
+import 'ordem_servie.dart';
 
 class BillingAccountService {
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
   Future<int> createBillingAccount(BillingAccount account) async {
     final db = await _dbHelper.database;
-    return await db.insert('conta', {
+    var newOrdemValue = await OrdemService().getNewOrdem();
+    var id = await db.insert('conta', {
       'nome': account.name,
       'valor': account.value,
       'data_vencimento': account.dueDate.toIso8601String(),
       'data_pagamento': account.paymentDate,
       'valor_pago': account.paymentValue,
       'id_fonte_pagadora': account.payingSource?.id,
+      'ordem': newOrdemValue,
     });
+    return id;
   }
 
   Future<List<BillingAccount>> getBillingAccounts() async {
@@ -25,6 +29,7 @@ class BillingAccountService {
            f.intent_android, f.intent_ios
     FROM conta c
     LEFT JOIN fonte_pagadora f ON c.id_fonte_pagadora = f.id
+    ORDER BY c.ordem
   ''');
 
     return List.generate(maps.length, (i) {
@@ -35,6 +40,7 @@ class BillingAccountService {
         dueDate: DateTime.parse(maps[i]['data_vencimento']),
         paymentDate: maps[i]['data_pagamento'],
         paymentValue: maps[i]['valor_pago'],
+        order: maps[i]['ordem'],
         payingSource:
             maps[i]['id_fonte_pagadora'] != null
                 ? PayingSource(
@@ -72,6 +78,7 @@ class BillingAccountService {
         dueDate: DateTime.parse(result[0]['data_vencimento']),
         paymentDate: result[0]['data_pagamento'],
         paymentValue: result[0]['valor_pago'],
+        order: result[0]['ordem'],
         payingSource:
             result[0]['id_fonte_pagadora'] != null
                 ? PayingSource(
@@ -98,6 +105,7 @@ class BillingAccountService {
         'data_pagamento': account.paymentDate?.toIso8601String() ?? null,
         'valor_pago': account.paymentValue,
         'id_fonte_pagadora': account.payingSource?.id,
+        'ordem': account.order,
       },
       where: 'id = ?',
       whereArgs: [account.id],
@@ -122,7 +130,7 @@ class BillingAccountService {
     FROM conta c
     LEFT JOIN fonte_pagadora f ON c.id_fonte_pagadora = f.id
     WHERE c.data_vencimento BETWEEN ? AND ?
-    ORDER BY c.data_vencimento
+    ORDER BY c.ordem
   ''',
       [start.toIso8601String(), end.toIso8601String()],
     );
@@ -138,6 +146,7 @@ class BillingAccountService {
                 ? DateTime.parse(maps[i]['data_pagamento'])
                 : null,
         paymentValue: maps[i]['valor_pago'],
+        order: maps[i]['ordem'],
         payingSource:
             maps[i]['id_fonte_pagadora'] != null
                 ? PayingSource(

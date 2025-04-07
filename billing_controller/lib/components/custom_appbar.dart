@@ -1,5 +1,4 @@
 import 'package:billing_controller/pages/payment_source_form.dart';
-import 'package:billing_controller/pages/payment_source_page.dart';
 import 'package:billing_controller/util/date_time_util.dart';
 import 'package:flutter/material.dart';
 
@@ -58,10 +57,9 @@ class CustomAppbar {
                   },
                 );
               } else {
-                // Cálculo correto do saldo total
                 double totalValue = listPayingSource.fold(
                   0.0,
-                  (sum, element) => sum + (element.balance ?? 0.0),
+                  (sum, element) => sum + (element.balance),
                 );
 
                 showDialog(
@@ -85,7 +83,7 @@ class CustomAppbar {
                                     style: TextStyle(color: Colors.white),
                                   ),
                                   subtitle: Text(
-                                    'R\$${listPayingSource[index].balance?.toStringAsFixed(2) ?? '0.00'}',
+                                    'R\$${listPayingSource[index].balance.toStringAsFixed(2)}',
                                     style: TextStyle(color: Colors.white70),
                                   ),
                                 ),

@@ -1,4 +1,3 @@
-import 'package:billing_controller/pages/accouts_page.dart';
 import 'package:billing_controller/services/billing_accout_service.dart';
 import 'package:flutter/material.dart';
 
@@ -73,19 +72,30 @@ class AccountFormWidget extends StatelessWidget {
                             const Center(child: CircularProgressIndicator()),
                   );
 
-                  final account = BillingAccount(
-                    name: _nameController.text,
-                    dueDate: DateTimeConverter.convertStringToDate(
+                  if (account?.id != null) {
+                    account?.name = _nameController.text;
+                    account?.dueDate = DateTimeConverter.convertStringToDate(
                       _dateController.text,
-                    ),
-                    value: double.parse(_valueController.text),
-                  );
+                    );
+                    account?.value = double.parse(_valueController.text);
+                    await BillingAccountService().updateBillingAccount(
+                      account!,
+                    );
+                  } else {
+                    final newAccount = BillingAccount(
+                      name: _nameController.text,
+                      dueDate: DateTimeConverter.convertStringToDate(
+                        _dateController.text,
+                      ),
+                      value: double.parse(_valueController.text),
+                    );
+                    await BillingAccountService().createBillingAccount(
+                      newAccount,
+                    );
+                  }
 
-                  await BillingAccountService().createBillingAccount(account);
-
-                  // Navigator.of(context).pop(); // Fecha o loading
-                  Navigator.of(context).pop(); // Fecha o formulário
-                  onSaveSuccess(); // Notifica o sucesso
+                  Navigator.of(context).pop();
+                  onSaveSuccess();
                 } catch (e) {
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(

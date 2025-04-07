@@ -42,8 +42,20 @@ class DatabaseHelper {
         data_pagamento TEXT,
         valor_pago REAL,
         id_fonte_pagadora INTEGER,
+        ordem INTEGER,
         FOREIGN KEY (id_fonte_pagadora) REFERENCES fonte_pagadora (id)
       )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE ordem_conta (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ordem_value INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      INSERT INTO ordem_conta (ordem_value) VALUES (1);
     ''');
   }
 }

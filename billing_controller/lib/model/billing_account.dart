@@ -8,6 +8,7 @@ class BillingAccount {
   DateTime? paymentDate;
   double? paymentValue;
   PayingSource? payingSource;
+  int? order;
 
   BillingAccount({
     this.id,
@@ -17,5 +18,6 @@ class BillingAccount {
     this.paymentDate,
     this.paymentValue,
     this.payingSource,
+    this.order,
   });
 }
